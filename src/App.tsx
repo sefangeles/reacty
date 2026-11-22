@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Clock, Flag, CheckCircle2, XCircle, AlertTriangle, ChevronRight, ChevronLeft } from 'lucide-react';
 
 interface SubQuestion {
