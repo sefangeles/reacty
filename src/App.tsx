@@ -1,7 +1,40 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, Flag, CheckCircle2, XCircle, AlertTriangle, ChevronRight, ChevronLeft } from 'lucide-react';
 
-const EXAM_DATA = [
+type ShortQuestion = {
+  qId: string;
+  type: "short" | "code";
+  points: number;
+  text: string;
+  answer: string;
+};
+
+type ChoiceQuestion = {
+  qId: string;
+  type: "tf" | "mcq";
+  points: number;
+  text: string;
+  options: string[];
+  answer: string;
+};
+
+type SubQuestion = ShortQuestion | ChoiceQuestion;
+
+type ExamItem = {
+  id: number;
+  part: string;
+  points: number;
+  context: string | null;
+  subQuestions: SubQuestion[];
+};
+
+type ScoreData = {
+  total: number;
+  max: number;
+  items: Record<number, number>;
+};
+
+const EXAM_DATA: ExamItem[] = [
   {
     id: 1, part: "Part 1: Identification", points: 3.00,
     context: `1  #include <stdio.h>
@@ -241,13 +274,13 @@ const EXAM_DATA = [
 ];
 
 export default function App() {
-  const [examState, setExamState] = useState('attempt'); // 'attempt', 'confirm', 'review'
+  const [examState, setExamState] = useState<'attempt' | 'confirm' | 'review'>('attempt'); // 'attempt', 'confirm', 'review'
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [answers, setAnswers] = useState({}); // { "qId": "value" }
-  const [flags, setFlags] = useState({});     // { "itemId": boolean }
+  const [answers, setAnswers] = useState<Record<string, string>>({}); // { "qId": "value" }
+  const [flags, setFlags] = useState<Record<number, boolean>>({});     // { "itemId": boolean }
   const [timeLeft, setTimeLeft] = useState(25 * 60); // 25 mins
   const [timerVisible, setTimerVisible] = useState(true);
-  const [scoreData, setScoreData] = useState({ total: 0, max: 0, items: {} });
+  const [scoreData, setScoreData] = useState<ScoreData>({ total: 0, max: 0, items: {} });
 
   useEffect(() => {
     if (examState !== 'attempt') return;
@@ -264,28 +297,28 @@ export default function App() {
     return () => clearInterval(timer);
   }, [examState]);
 
-  const formatTime = (seconds) => {
+  const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
-  const handleAnswerChange = (qId, val) => {
+  const handleAnswerChange = (qId: string, val: string) => {
     setAnswers(prev => ({ ...prev, [qId]: val }));
   };
 
-  const toggleFlag = (itemId) => {
+  const toggleFlag = (itemId: number) => {
     setFlags(prev => ({ ...prev, [itemId]: !prev[itemId] }));
   };
 
-  const isItemAnswered = (item) => {
+  const isItemAnswered = (item: ExamItem) => {
     return item.subQuestions.every(sq => {
       const ans = answers[sq.qId];
       return ans && ans.toString().trim() !== "";
     });
   };
 
-  const checkSubQuestion = (sq, userAns) => {
+  const checkSubQuestion = (sq: SubQuestion, userAns: string | undefined) => {
     if (!userAns) return false;
     const cleanUser = userAns.trim().toLowerCase();
     const cleanCorrect = sq.answer.trim().toLowerCase();
@@ -296,7 +329,7 @@ export default function App() {
   const finishAttempt = () => {
     let totalScore = 0;
     let maxScore = 0;
-    let itemScores = {};
+    const itemScores: Record<number, number> = {};
 
     EXAM_DATA.forEach(item => {
       let itemScore = 0;
