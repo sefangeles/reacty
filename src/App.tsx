@@ -1,40 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, Flag, CheckCircle2, XCircle, AlertTriangle, ChevronRight, ChevronLeft } from 'lucide-react';
 
-type ShortQuestion = {
+interface SubQuestion {
   qId: string;
-  type: "short" | "code";
+  type: string;
   points: number;
   text: string;
   answer: string;
-};
+  options?: string[];
+}
 
-type ChoiceQuestion = {
-  qId: string;
-  type: "tf" | "mcq";
-  points: number;
-  text: string;
-  options: string[];
-  answer: string;
-};
-
-type SubQuestion = ShortQuestion | ChoiceQuestion;
-
-type ExamItem = {
+interface Question {
   id: number;
   part: string;
   points: number;
   context: string | null;
   subQuestions: SubQuestion[];
-};
+}
 
-type ScoreData = {
-  total: number;
-  max: number;
-  items: Record<number, number>;
-};
-
-const EXAM_DATA: ExamItem[] = [
+const EXAM_DATA: Question[] = [
   {
     id: 1, part: "Part 1: Identification", points: 3.00,
     context: `1  #include <stdio.h>
@@ -274,13 +258,17 @@ const EXAM_DATA: ExamItem[] = [
 ];
 
 export default function App() {
-  const [examState, setExamState] = useState<'attempt' | 'confirm' | 'review'>('attempt'); // 'attempt', 'confirm', 'review'
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, string>>({}); // { "qId": "value" }
-  const [flags, setFlags] = useState<Record<number, boolean>>({});     // { "itemId": boolean }
-  const [timeLeft, setTimeLeft] = useState(25 * 60); // 25 mins
-  const [timerVisible, setTimerVisible] = useState(true);
-  const [scoreData, setScoreData] = useState<ScoreData>({ total: 0, max: 0, items: {} });
+  const [examState, setExamState] = useState<string>('attempt'); 
+  const [currentIndex, setCurrentIndex] = useState<number>(0);
+  const [answers, setAnswers] = useState<Record<string, string>>({}); 
+  const [flags, setFlags] = useState<Record<number, boolean>>({});    
+  const [timeLeft, setTimeLeft] = useState<number>(25 * 60); 
+  const [timerVisible, setTimerVisible] = useState<boolean>(true);
+  const [scoreData, setScoreData] = useState<{
+    total: number;
+    max: number;
+    items: Record<number, number>;
+  }>({ total: 0, max: 0, items: {} });
 
   useEffect(() => {
     if (examState !== 'attempt') return;
@@ -311,14 +299,14 @@ export default function App() {
     setFlags(prev => ({ ...prev, [itemId]: !prev[itemId] }));
   };
 
-  const isItemAnswered = (item: ExamItem) => {
+  const isItemAnswered = (item: Question) => {
     return item.subQuestions.every(sq => {
       const ans = answers[sq.qId];
       return ans && ans.toString().trim() !== "";
     });
   };
 
-  const checkSubQuestion = (sq: SubQuestion, userAns: string | undefined) => {
+  const checkSubQuestion = (sq: SubQuestion, userAns: string) => {
     if (!userAns) return false;
     const cleanUser = userAns.trim().toLowerCase();
     const cleanCorrect = sq.answer.trim().toLowerCase();
@@ -329,7 +317,7 @@ export default function App() {
   const finishAttempt = () => {
     let totalScore = 0;
     let maxScore = 0;
-    const itemScores: Record<number, number> = {};
+    let itemScores: Record<number, number> = {};
 
     EXAM_DATA.forEach(item => {
       let itemScore = 0;
@@ -438,7 +426,7 @@ export default function App() {
 
                       {(sq.type === 'mcq' || sq.type === 'tf') && (
                         <div className="space-y-2">
-                          {sq.options.map((opt, idx) => (
+                          {sq.options?.map((opt, idx) => (
                             <label key={idx} className="flex items-start gap-3 cursor-pointer p-2 hover:bg-[#3a3b40] rounded transition-colors group border border-transparent hover:border-gray-600">
                               <input 
                                 type="radio" 
